@@ -46,9 +46,8 @@ func Init(e *gin.Engine) {
 	api := g.Group("/api")
 	auth := api.Group("", middlewares.Auth)
 	webauthn := api.Group("/authn", middlewares.Authn)
-
-	api.POST("/auth/login", handles.Login)
-	api.POST("/auth/login/hash", handles.LoginHash)
+	api.GET("/auth/create_challenge", handles.FirstRegister)
+	api.POST("/auth/login/hash", handles.GeetestCaptcha)
 	api.POST("/auth/login/ldap", handles.LoginLdap)
 	auth.GET("/me", handles.CurrentUser)
 	auth.POST("/me/update", handles.UpdateCurrent)

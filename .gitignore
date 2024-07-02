@@ -11,7 +11,7 @@ output/
 *.dylib
 *.db
 *.bin
-
+alist
 # Test binary, built with `go test -c`
 *.test
 

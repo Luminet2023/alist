@@ -238,7 +238,7 @@ func OIDCLoginCallback(c *gin.Context) {
 	}
 	if argument == "get_sso_id" {
 		if useCompatibility {
-			c.Redirect(302, common.GetApiUrl(c.Request)+"/@manage?sso_id="+userID)
+			c.Redirect(302, common.GetApiUrl(c.Request)+"//manage?sso_id="+userID)
 			return
 		}
 		html := fmt.Sprintf(`<!DOCTYPE html>
@@ -265,7 +265,7 @@ func OIDCLoginCallback(c *gin.Context) {
 			common.ErrorResp(c, err, 400)
 		}
 		if useCompatibility {
-			c.Redirect(302, common.GetApiUrl(c.Request)+"/@login?token="+token)
+			c.Redirect(302, common.GetApiUrl(c.Request)+"//login?token="+token)
 			return
 		}
 		html := fmt.Sprintf(`<!DOCTYPE html>
@@ -403,7 +403,7 @@ func SSOLoginCallback(c *gin.Context) {
 	}
 	if argument == "get_sso_id" {
 		if usecompatibility {
-			c.Redirect(302, common.GetApiUrl(c.Request)+"/@manage?sso_id="+userID)
+			c.Redirect(302, common.GetApiUrl(c.Request)+"//manage?sso_id="+userID)
 			return
 		}
 		html := fmt.Sprintf(`<!DOCTYPE html>
@@ -431,7 +431,7 @@ func SSOLoginCallback(c *gin.Context) {
 		common.ErrorResp(c, err, 400)
 	}
 	if usecompatibility {
-		c.Redirect(302, common.GetApiUrl(c.Request)+"/@login?token="+token)
+		c.Redirect(302, common.GetApiUrl(c.Request)+"//login?token="+token)
 		return
 	}
 	html := fmt.Sprintf(`<!DOCTYPE html>
