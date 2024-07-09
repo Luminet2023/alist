@@ -47,6 +47,7 @@ func Init(e *gin.Engine) {
 	auth := api.Group("", middlewares.Auth)
 	webauthn := api.Group("/authn", middlewares.Authn)
 	api.GET("/auth/create_challenge", handles.FirstRegister)
+	api.GET("/auth/need_captcha", handles.NeedCaptcha)
 	api.POST("/auth/login/hash", handles.GeetestCaptcha)
 	api.POST("/auth/login/ldap", handles.LoginLdap)
 	auth.GET("/me", handles.CurrentUser)

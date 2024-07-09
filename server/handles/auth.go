@@ -51,6 +51,13 @@ type UserData struct {
 	OtpCode  string `json:"otp_code"`
 }
 
+var loginCache = cache.NewMemCache[int]()
+var (
+	defaultDuration = time.Minute * 5
+	defaultTimes    = 5
+)
+var cli = http.Client{Timeout: time.Second * 5}
+
 const CAPTCHA_ID string = "ddd701191607e83c9d8d87020099d5aa"
 
 // geetest 密钥
@@ -69,71 +76,79 @@ type GlobalVars struct {
 // geetest verification interface
 const URL = API_SERVER + "/validate" + "?captcha_id=" + CAPTCHA_ID
 
+var ip string
+
 func GeetestCaptcha(c *gin.Context) {
+	count, ok := loginCache.Get(ip)
+	if ok && count >= defaultTimes {
+		var cjson captcha
+		if err := c.ShouldBindBodyWith(&cjson, binding.JSON); err != nil {
+			// 处理错误，这里可以根据具体需求进行处理
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+			return
+		}
+		// c.JSON(http.StatusOK, gin.H{
+		// 	"gin": cjson,
+		// })
 
-	var cjson captcha
-	if err := c.ShouldBindBodyWith(&cjson, binding.JSON); err != nil {
-		// 处理错误，这里可以根据具体需求进行处理
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-	// c.JSON(http.StatusOK, gin.H{
-	// 	"gin": cjson,
-	// })
+		var lot_number = cjson.Lot_number
+		var captcha_output = cjson.Captcha_output
+		var pass_token = cjson.Pass_token
+		var gen_time = cjson.Gen_time
 
-	var lot_number = cjson.Lot_number
-	var captcha_output = cjson.Captcha_output
-	var pass_token = cjson.Pass_token
-	var gen_time = cjson.Gen_time
+		sign_token := hmac_encode(CAPTCHA_KEY, lot_number)
+		// c.JSON(http.StatusOK, gin.H{
+		// 	"lot_number":     lot_number,
+		// 	"pass_token":     pass_token,
+		// 	"captcha_output": captcha_output,
+		// 	"gen_time":       gen_time,
+		// 	"sign_token":     sign_token,
+		// })
+		// 向极验转发前端数据 + “sign_token” 签名
+		// send front end parameter + "sign_token" signature to geetest
+		form_data := make(url.Values)
+		form_data["sign_token"] = []string{sign_token}
+		form_data["lot_number"] = []string{lot_number}
+		form_data["captcha_output"] = []string{captcha_output}
+		form_data["pass_token"] = []string{pass_token}
+		form_data["gen_time"] = []string{gen_time}
+		form_data["sign_token"] = []string{hmac_encode(CAPTCHA_KEY, lot_number)}
 
-	sign_token := hmac_encode(CAPTCHA_KEY, lot_number)
-	// c.JSON(http.StatusOK, gin.H{
-	// 	"lot_number":     lot_number,
-	// 	"pass_token":     pass_token,
-	// 	"captcha_output": captcha_output,
-	// 	"gen_time":       gen_time,
-	// 	"sign_token":     sign_token,
-	// })
-	// 向极验转发前端数据 + “sign_token” 签名
-	// send front end parameter + "sign_token" signature to geetest
-	form_data := make(url.Values)
-	form_data["sign_token"] = []string{sign_token}
-	form_data["lot_number"] = []string{lot_number}
-	form_data["captcha_output"] = []string{captcha_output}
-	form_data["pass_token"] = []string{pass_token}
-	form_data["gen_time"] = []string{gen_time}
-	form_data["sign_token"] = []string{hmac_encode(CAPTCHA_KEY, lot_number)}
+		cli := http.Client{Timeout: time.Second * 5}
+		resp, err := cli.PostForm(fmt.Sprintf("%s?captcha_id=%s", GEETESTCaptchaVerifyUrl, CAPTCHA_ID), form_data)
 
-	cli := http.Client{Timeout: time.Second * 5}
-	resp, err := cli.PostForm(fmt.Sprintf("%s?captcha_id=%s", GEETESTCaptchaVerifyUrl, CAPTCHA_ID), form_data)
+		if err != nil || resp.StatusCode != 200 {
+			err = errors.New("肥鸡验证失败")
+			common.ErrorResp(c, err, 400)
+		}
 
-	if err != nil || resp.StatusCode != 200 {
-		err = errors.New("肥鸡验证失败")
-		common.ErrorResp(c, err, 400)
-	}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
 
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+		type captchaResponse struct {
+			Result string `json:"result"`
+			Reason string `json:"reason"`
+		}
 
-	type captchaResponse struct {
-		Result string `json:"result"`
-		Reason string `json:"reason"`
-	}
+		captchaResp := &captchaResponse{}
 
-	captchaResp := &captchaResponse{}
-
-	err = json.Unmarshal(body, captchaResp)
-	if err != nil {
-		// 处理解析JSON的错误，这里可以根据具体需求进行处理
-		err = errors.New("肥鸡验证失败")
-		common.ErrorResp(c, err, 400)
-	}
-	if captchaResp.Result == "success" {
-		LoginHash(c)
+		err = json.Unmarshal(body, captchaResp)
+		if err != nil {
+			// 处理解析JSON的错误，这里可以根据具体需求进行处理
+			err = errors.New("肥鸡验证失败")
+			common.ErrorResp(c, err, 400)
+		}
+		if captchaResp.Result == "success" {
+			LoginHash(c)
+		} else {
+			err = errors.New("肥鸡验证失败")
+			common.ErrorResp(c, err, 400)
+		}
+		loginCache.Expire(ip, defaultDuration)
 	} else {
-		err = errors.New("肥鸡验证失败")
-		common.ErrorResp(c, err, 400)
+		LoginHash(c)
 	}
+
 }
 
 // hmac-sha256 加密：  CAPTCHA_KEY,lot_number
@@ -143,12 +158,6 @@ func hmac_encode(key string, data string) string {
 	mac.Write([]byte(data))
 	return hex.EncodeToString(mac.Sum(nil))
 }
-
-var loginCache = cache.NewMemCache[int]()
-var (
-	defaultDuration = time.Minute * 5
-	defaultTimes    = 5
-)
 
 type LoginReq struct {
 	Username string `json:"username" binding:"required"`
@@ -178,15 +187,8 @@ func LoginHash(c *gin.Context) {
 }
 
 func loginHash(c *gin.Context, req *LoginReq) {
-	// check count of login
-	ip := c.ClientIP()
-	count, ok := loginCache.Get(ip)
-	if ok && count >= defaultTimes {
-		common.ErrorStrResp(c, "Too many unsuccessful sign-in attempts have been made using an incorrect username or password, Try again later.", 429)
-		loginCache.Expire(ip, defaultDuration)
-		return
-	}
 	// check username
+	count, _ := loginCache.Get(ip) // 忽略第二个返回值
 	user, err := op.GetUserByName(req.Username)
 	if err != nil {
 		common.ErrorResp(c, err, 400)
@@ -202,7 +204,6 @@ func loginHash(c *gin.Context, req *LoginReq) {
 	// check 2FA
 	if user.OtpSecret != "" {
 		if !totp.Validate(req.OtpCode, user.OtpSecret) {
-			common.ErrorStrResp(c, "Invalid 2FA code", 402)
 			loginCache.Set(ip, count+1)
 			return
 		}
@@ -309,5 +310,15 @@ func Verify2FA(c *gin.Context) {
 		common.ErrorResp(c, err, 500)
 	} else {
 		common.SuccessResp(c)
+	}
+}
+func NeedCaptcha(c *gin.Context) {
+	count, ok := loginCache.Get(ip)
+	result := `{"code":200,"need_captcha":true,"msg":"success"}`
+	if ok && count >= defaultTimes {
+		c.String(http.StatusOK, result)
+		loginCache.Expire(ip, defaultDuration)
+	} else {
+		c.String(http.StatusOK, `{"code":200,"need_captcha":false,"msg":"success"}`)
 	}
 }
