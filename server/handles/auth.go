@@ -54,7 +54,7 @@ type UserData struct {
 var loginCache = cache.NewMemCache[int]()
 var (
 	defaultDuration = time.Minute * 5
-	defaultTimes    = 5
+	defaultTimes    = 6
 )
 var cli = http.Client{Timeout: time.Second * 5}
 
