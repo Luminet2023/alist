@@ -53,6 +53,10 @@ const (
 	// aria2
 	Aria2Uri    = "aria2_uri"
 	Aria2Secret = "aria2_secret"
+	//Geetest
+	GeetestID  = "geetest_id"
+	GeetestKey = "geetest_key"
+	GeetestON  = "geetest_enabled"
 
 	// single
 	Token         = "token"

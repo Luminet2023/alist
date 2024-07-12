@@ -14,6 +14,11 @@ type SetAria2Req struct {
 	Uri    string `json:"uri" form:"uri"`
 	Secret string `json:"secret" form:"secret"`
 }
+type SetGeetestReq struct {
+	Uri            string `json:"uri" form:"uri"`
+	Secret         string `json:"secret" form:"secret"`
+	GeetestEnabled string
+}
 
 func SetAria2(c *gin.Context) {
 	var req SetAria2Req
@@ -36,6 +41,25 @@ func SetAria2(c *gin.Context) {
 		return
 	}
 	common.SuccessResp(c, version)
+}
+func SetGeetest(c *gin.Context) {
+	var req SetGeetestReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, err, 400)
+		return
+	}
+
+	items := []model.SettingItem{
+		{Key: conf.GeetestID, Value: req.Uri, Type: conf.TypeString, Group: model.GEETEST, Flag: model.PRIVATE},
+		{Key: conf.GeetestKey, Value: req.Secret, Type: conf.TypeString, Group: model.GEETEST, Flag: model.PRIVATE},
+		{Key: conf.GeetestON, Value: req.GeetestEnabled, Type: conf.TypeString, Group: model.GEETEST, Flag: model.PRIVATE}, // 注意这里改为 conf.TypeString
+	}
+	if err := op.SaveSettingItems(items); err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+
+	common.SuccessResp(c)
 }
 
 type SetQbittorrentReq struct {

@@ -123,6 +123,7 @@ func admin(g *gin.RouterGroup) {
 	setting.POST("/delete", handles.DeleteSetting)
 	setting.POST("/reset_token", handles.ResetToken)
 	setting.POST("/set_aria2", handles.SetAria2)
+	setting.POST("/set_geetest", handles.SetGeetest)
 	setting.POST("/set_qbit", handles.SetQbittorrent)
 
 	task := g.Group("/task")
