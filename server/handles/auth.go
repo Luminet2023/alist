@@ -317,9 +317,15 @@ func Verify2FA(c *gin.Context) {
 func NeedCaptcha(c *gin.Context) {
 	if setting.GetStr(conf.GeetestON) == "enabled" {
 		count, ok := loginCache.Get(ip)
-		result := `{"code":200,"need_captcha":true,"msg":"success"}`
+		CAPTCHA_ID := setting.GetStr(conf.GeetestID)
 		if ok && count >= defaultTimes {
-			c.String(http.StatusOK, result)
+			response := map[string]interface{}{
+				"code":         200,
+				"need_captcha": ok && count >= defaultTimes,
+				"captchaId":    CAPTCHA_ID,
+				"msg":          "success",
+			}
+			c.JSON(http.StatusOK, response)
 			loginCache.Expire(ip, defaultDuration)
 		} else {
 			c.String(http.StatusOK, `{"code":200,"need_captcha":false,"msg":"success"}`)
