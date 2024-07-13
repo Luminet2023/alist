@@ -152,6 +152,9 @@ func InitialSettings() []model.SettingItem {
 		{Key: conf.IgnorePaths, Value: "", Type: conf.TypeText, Group: model.INDEX, Flag: model.PRIVATE, Help: `one path per line`},
 		{Key: conf.MaxIndexDepth, Value: "20", Type: conf.TypeNumber, Group: model.INDEX, Flag: model.PRIVATE, Help: `max depth of index`},
 		{Key: conf.IndexProgress, Value: "{}", Type: conf.TypeText, Group: model.SINGLE, Flag: model.PRIVATE},
+		{Key: conf.GeetestID, Value: "", Type: conf.TypeString, Group: model.GEETEST, Flag: model.PRIVATE},
+		{Key: conf.GeetestKey, Value: "", Type: conf.TypeString, Group: model.GEETEST, Flag: model.PRIVATE},
+		{Key: conf.GeetestON, Value: "disabled", Type: conf.TypeString, Group: model.GEETEST, Flag: model.PRIVATE}, // 注意这里改为 conf.TypeString
 
 		// SSO settings
 		{Key: conf.SSOLoginEnabled, Value: "false", Type: conf.TypeBool, Group: model.SSO, Flag: model.PUBLIC},
